@@ -325,13 +325,10 @@ FileList::update_paths(iterator first, iterator last) {
 
 bool
 FileList::make_root_path() {
-  puts("mr a");
   if (!is_open())
     return false;
-  puts("mr b");
 
 #ifdef WIN32
-  printf("making root path %s\n",m_rootDir.c_str());
   return mkdir(m_rootDir.c_str()) == 0 || errno == EEXIST;
 #else
   return ::mkdir(m_rootDir.c_str(), 0777) == 0 || errno == EEXIST;
@@ -424,10 +421,8 @@ FileList::open(int flags) {
   path_set pathSet;
 
   try {
-    puts("open checking root");
     if (!(flags & open_no_create) && !make_root_path())
       throw storage_error("Could not create directory '" + m_rootDir + "': " + std::strerror(errno));
-    puts("checked");
   
     for (iterator itr = begin(), last = end(); itr != last; ++itr) {
       File* entry = *itr;
@@ -546,7 +541,6 @@ FileList::make_directory(Path::const_iterator pathBegin, Path::const_iterator pa
       break;
 
 #ifdef WIN32
-    printf("making dir %s\n",path.c_str());
     if (::mkdir(path.c_str()) != 0 && errno != EEXIST)
 #else
     if (::mkdir(path.c_str(), 0777) != 0 && errno != EEXIST)
