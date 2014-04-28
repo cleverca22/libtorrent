@@ -38,7 +38,11 @@
 #define LIBTORRENT_NET_SOCKET_STREAM_H
 
 #include <sys/types.h>
-#include <sys/socket.h>
+#ifdef WIN32
+# include <winsock2.h>
+#else
+# include <sys/socket.h>
+#endif
 
 #include "torrent/exceptions.h"
 #include "socket_base.h"
@@ -83,7 +87,15 @@ SocketStream::read_stream(void* buf, uint32_t length) {
   if (length == 0)
     throw internal_error("Tried to read to buffer length 0.");
 
+#ifdef WIN32
+  int ret = ::recv(m_fileDesc, (char*)buf, length, 0);
+  // under some conditions, WSAGetLastError returns 0 by the time we reach read_stream_throws
+  if (ret == -1) return -WSAGetLastError();
+  //printf("recv(%d,%p,%d) == %d, errno=%d, winerr=%d\n",m_fileDesc,buf,length,ret,errno,WSAGetLastError());
+  return ret;
+#else
   return ::recv(m_fileDesc, buf, length, 0);
+#endif
 }
 
 inline int
@@ -91,7 +103,11 @@ SocketStream::write_stream(const void* buf, uint32_t length) {
   if (length == 0)
     throw internal_error("Tried to write to buffer length 0.");
 
+#ifdef WIN32
+  return ::send(m_fileDesc, (const char *)buf, length, 0);
+#else
   return ::send(m_fileDesc, buf, length, 0);
+#endif
 }
 
 }

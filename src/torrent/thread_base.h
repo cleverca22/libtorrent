@@ -37,7 +37,11 @@
 #ifndef LIBTORRENT_THREAD_BASE_H
 #define LIBTORRENT_THREAD_BASE_H
 
-#include <pthread.h>
+#ifdef WIN32
+# include <windows.h>
+#else
+# include <pthread.h>
+#endif
 #include <sys/types.h>
 #include <torrent/common.h>
 
@@ -63,7 +67,11 @@ protected:
   struct global_lock_type {
     int             waiting;
     int             main_polling;
+#ifdef WIN32
+    HANDLE          lock;
+#else
     pthread_mutex_t lock;
+#endif
   };
 
   static global_lock_type m_global;
@@ -72,18 +80,26 @@ protected:
 inline void
 ThreadBase::acquire_global_lock() {
   __sync_add_and_fetch(&ThreadBase::m_global.waiting, 1);
+#ifdef WIN32
+  WaitForSingleObject(ThreadBase::m_global.lock,INFINITE);
+#else
   pthread_mutex_lock(&ThreadBase::m_global.lock);
+#endif
   __sync_sub_and_fetch(&ThreadBase::m_global.waiting, 1);
 }
 
-inline void
+/*inline void
 ThreadBase::release_global_lock() {
   pthread_mutex_unlock(&ThreadBase::m_global.lock);
-}
+}*/
 
 inline void
 ThreadBase::waive_global_lock() {
+#ifdef WIN32
+  ReleaseMutex(ThreadBase::m_global.lock);
+#else
   pthread_mutex_unlock(&ThreadBase::m_global.lock);
+#endif
 
   // Do we need to sleep here? Make a CppUnit test for this.
   acquire_global_lock();

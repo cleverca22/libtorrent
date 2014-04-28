@@ -40,6 +40,9 @@
 #include <sys/types.h>
 #include <torrent/common.h>
 #include <torrent/poll.h>
+#ifdef WIN32
+# include <winsock2.h>
+#endif
 
 namespace torrent {
 

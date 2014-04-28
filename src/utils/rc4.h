@@ -47,7 +47,8 @@ namespace torrent {
 
 class RC4 {
 public:
-#ifdef USE_OPENSSL
+// FIXME
+#ifndef USE_OPENSSL
   RC4()                                                               { }
   RC4(const unsigned char key[], int len)                             { RC4_set_key(&m_key, len, key); }
 

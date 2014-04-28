@@ -38,7 +38,9 @@
 
 #include <sys/types.h>
 #include <sys/time.h>
+#ifndef WIN32
 #include <sys/resource.h>
+#endif
 
 #include "data/chunk_list.h"
 #include "utils/log_files.h"
@@ -100,6 +102,9 @@ ChunkManager::sync_queue_size() const {
 
 uint64_t
 ChunkManager::estimate_max_memory_usage() {
+#ifdef WIN32
+  return (uint64_t)DEFAULT_ADDRESS_SPACE_SIZE << 20;
+#else
   rlimit rlp;
   
 #ifdef RLIMIT_AS
@@ -110,6 +115,7 @@ ChunkManager::estimate_max_memory_usage() {
     return rlp.rlim_cur;
 
   return (uint64_t)DEFAULT_ADDRESS_SPACE_SIZE << 20;
+#endif
 }
 
 uint64_t

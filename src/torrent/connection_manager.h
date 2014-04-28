@@ -39,11 +39,15 @@
 #ifndef LIBTORRENT_CONNECTION_MANAGER_H
 #define LIBTORRENT_CONNECTION_MANAGER_H
 
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <netinet/in_systm.h>
-#include <netinet/ip.h>
+#ifdef WIN32
+# include <winsock2.h>
+#else
+# include <sys/socket.h>
+# include <arpa/inet.h>
+# include <netinet/in.h>
+# include <netinet/in_systm.h>
+# include <netinet/ip.h>
+#endif
 #include <sigc++/connection.h>
 #include <sigc++/signal.h>
 #include <sigc++/functors/slot.h>
@@ -64,9 +68,13 @@ public:
   typedef sigc::slot<uint32_t, const sockaddr*> slot_filter_type;
 
   static const priority_type iptos_default     = 0;
+#ifdef WIN32
+  static const priority_type iptos_throughput  = 0;
+#else
   static const priority_type iptos_lowdelay    = IPTOS_LOWDELAY;
   static const priority_type iptos_throughput  = IPTOS_THROUGHPUT;
   static const priority_type iptos_reliability = IPTOS_RELIABILITY;
+#endif
 
 #if defined IPTOS_MINCOST
   static const priority_type iptos_mincost     = IPTOS_MINCOST;

@@ -43,7 +43,12 @@
 #ifndef RAK_ADDRESS_INFO_H
 #define RAK_ADDRESS_INFO_H
 
-#include <netdb.h>
+#ifdef WIN32
+# define _WIN32_WINNT 0x0501
+# include <ws2tcpip.h>
+#else
+# include <netdb.h>
+#endif
 #include <rak/socket_address.h>
 
 namespace rak {

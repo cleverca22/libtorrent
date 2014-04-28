@@ -39,7 +39,11 @@
 
 #include <memory>
 #include <inttypes.h>
-#include <netinet/in.h>
+#ifdef WIN32
+# include <winsock2.h>
+#else
+# include <netinet/in.h>
+#endif
 
 #include "torrent/exceptions.h"
 

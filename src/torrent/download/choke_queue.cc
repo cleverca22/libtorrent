@@ -337,7 +337,7 @@ choke_manager_allocate_slots(choke_queue::iterator first, choke_queue::iterator 
   // total weight. This will ensure that aggregated over time we
   // spread the unchokes equally according to the weight table.
   if (weightTotal != 0 && unchoke != 0) {
-    uint32_t start = ::random() % weightTotal;
+    uint32_t start = ::rand() % weightTotal;
     unsigned int itr = 0;
 
     for ( ; ; itr++) {
@@ -463,7 +463,7 @@ calculate_upload_unchoke(choke_queue::iterator first, choke_queue::iterator last
       // This will be our optimistic unchoke queue, should be
       // semi-random. Give lower weights to known stingy peers.
 
-      first->second = 1 * choke_queue::order_base + ::random() % (1 << 10);
+      first->second = 1 * choke_queue::order_base + ::rand() % (1 << 10);
     }
 
     first++;

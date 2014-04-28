@@ -39,7 +39,11 @@
 
 #include <algorithm>
 #include <inttypes.h>
-#include <sys/mman.h>
+#ifdef WIN32
+# include <mman.h>
+#else
+# include <sys/mman.h>
+#endif
 #include <cstddef>
 
 namespace torrent {
@@ -68,9 +72,14 @@ class MemoryChunk {
   static const int advice_willneed        = 3;
   static const int advice_dontneed        = 4;
 #endif
+#ifdef WIN32
+  static const int sync_sync              = 0; // FIXME
+  static const int sync_async             = 0;
+#else
   static const int sync_sync              = MS_SYNC;
   static const int sync_async             = MS_ASYNC;
   static const int sync_invalidate        = MS_INVALIDATE;
+#endif
 
   MemoryChunk() { clear(); }
   ~MemoryChunk() { clear(); }

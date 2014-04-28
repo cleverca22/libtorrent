@@ -40,6 +40,9 @@
 
 namespace torrent {
 
+#ifdef WIN32
+ThreadBase::global_lock_type lt_cacheline_aligned ThreadBase::m_global = { 0, 0, CreateMutex(NULL,FALSE,NULL) };
+#else
 ThreadBase::global_lock_type lt_cacheline_aligned ThreadBase::m_global = { 0, 0, PTHREAD_MUTEX_INITIALIZER };
-
+#endif
 }

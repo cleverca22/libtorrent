@@ -38,7 +38,11 @@
 
 #include <errno.h>
 #include <sys/types.h>
-#include <sys/socket.h>
+#ifdef WIN32
+# include <winsock2.h>
+#else
+# include <sys/socket.h>
+#endif
 
 #include "torrent/exceptions.h"
 #include "torrent/poll.h"
@@ -56,7 +60,11 @@ SocketBase::~SocketBase() {
 
 bool
 SocketBase::read_oob(void* buffer) {
+#ifdef WIN32
+  int r = ::recv(m_fileDesc, (char*)buffer, 1, MSG_OOB);
+#else
   int r = ::recv(m_fileDesc, buffer, 1, MSG_OOB);
+#endif
 
 //   if (r < 0)
 //     m_errno = errno;
@@ -66,7 +74,11 @@ SocketBase::read_oob(void* buffer) {
 
 bool
 SocketBase::write_oob(const void* buffer) {
+#ifdef WIN32
+  int r = ::send(m_fileDesc, (char*)buffer, 1, MSG_OOB);
+#else
   int r = ::send(m_fileDesc, buffer, 1, MSG_OOB);
+#endif
 
 //   if (r < 0)
 //     m_errno = errno;

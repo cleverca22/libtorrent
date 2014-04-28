@@ -62,14 +62,25 @@ SocketStream::read_stream_throws(void* buf, uint32_t length) {
     throw close_connection();
 
   if (r < 0) {
-    if (rak::error_number::current().is_blocked_momentary())
+#ifdef WIN32
+    int winerr = r * -1;
+    //printf("winerr %d, errno %d\n",winerr,errno);
+    rak::error_number err(winerr);
+#else
+    rak::error_number err = rak::error_number::current();
+#endif
+    if (err.is_blocked_momentary())
       return 0;
-    else if (rak::error_number::current().is_closed())
+    else if (err.is_closed()) {
       throw close_connection();
-    else if (rak::error_number::current().is_blocked_prolonged())
-      throw blocked_connection();
-    else
+    } else if (err.is_blocked_prolonged()) {
+      //puts("err 3");
+      return 0; // FIXME
+      //throw blocked_connection();
+    } else {
+      //printf("read returned %d %d %d\n",r,errno,winerr);
       throw connection_error(rak::error_number::current().value());
+    }
   }
 
   return r;

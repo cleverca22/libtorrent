@@ -37,10 +37,14 @@
 #include "config.h"
 
 #include <unistd.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
+#ifdef WIN32
+# include <winsock2.h>
+#else
+# include <arpa/inet.h>
+# include <netinet/in.h>
+# include <sys/socket.h>
+#endif
 #include <rak/socket_address.h>
-#include <sys/socket.h>
 
 #include "torrent/exceptions.h"
 #include "torrent/connection_manager.h"

@@ -43,6 +43,9 @@
 #include <limits>
 #include <stdlib.h>
 #include <sys/types.h>
+#ifdef WIN32
+# include <malloc.h>
+#endif
 
 namespace rak {
 
@@ -77,7 +80,12 @@ public:
 
   static pointer alloc_size(size_type size) {
     pointer ptr = NULL;
+#ifdef WIN32
+    //ptr = (pointer)__mingw_aligned_malloc(size,LT_SMP_CACHE_BYTES);
+    ptr = (pointer)malloc(size);
+#else
     int __UNUSED result = posix_memalign((void**)&ptr, LT_SMP_CACHE_BYTES, size);
+#endif
 
     return ptr;
   }

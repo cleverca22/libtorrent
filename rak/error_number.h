@@ -39,6 +39,9 @@
 
 #include <cerrno>
 #include <cstring>
+#ifdef WIN32
+# include <winsock2.h>
+#endif
 
 namespace rak {
 
@@ -46,8 +49,13 @@ class error_number {
 public:
   static const int e_access      = EACCES;
   static const int e_again       = EAGAIN;
+#ifdef WIN32
+  static const int e_connreset   = WSAECONNRESET;
+  static const int e_connaborted = WSAECONNABORTED;
+#else
   static const int e_connreset   = ECONNRESET;
   static const int e_connaborted = ECONNABORTED;
+#endif
   static const int e_deadlk      = EDEADLK;
 
   static const int e_noent       = ENOENT;
@@ -66,7 +74,11 @@ public:
   const char*         c_str() const                { return std::strerror(m_errno); }
 
   bool                is_blocked_momentary() const { return m_errno == e_again || m_errno == e_intr; }
+#ifdef WIN32
+  bool                is_blocked_prolonged() const { return m_errno == e_deadlk || m_errno == WSAEWOULDBLOCK; }
+#else
   bool                is_blocked_prolonged() const { return m_errno == e_deadlk; }
+#endif
 
   bool                is_closed() const            { return m_errno == e_connreset || m_errno == e_connaborted; }
 

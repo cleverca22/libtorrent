@@ -38,6 +38,9 @@
 #define LIBTORRENT_TORRENT_EVENT_H
 
 #include <torrent/common.h>
+#ifdef WIN32
+# include <winsock.h>
+#endif
 
 namespace torrent {
 

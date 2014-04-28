@@ -38,7 +38,10 @@
 
 #include <unistd.h>
 #include <sys/types.h>
-#include <sys/mman.h>
+#ifdef WIN32
+#else
+# include <sys/mman.h>
+#endif
 #include <rak/error_number.h>
 
 #include "torrent/exceptions.h"
@@ -46,6 +49,13 @@
 
 namespace torrent {
 
+#ifdef WIN32
+int getpagesize() {
+	SYSTEM_INFO sysInfo;
+	GetSystemInfo(&sysInfo);
+	return sysInfo.dwAllocationGranularity;
+}
+#endif
 uint32_t MemoryChunk::m_pagesize = getpagesize();
 
 inline void
@@ -144,7 +154,12 @@ MemoryChunk::sync(uint32_t offset, uint32_t length, int flags) {
 
   align_pair(&offset, &length);
   
+#ifdef WIN32
+  // FIXME
+  return true;
+#else
   return msync(m_ptr + offset, length, flags) == 0;
+#endif
 }    
 
 }

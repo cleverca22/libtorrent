@@ -38,7 +38,11 @@
 
 #include <cerrno>
 #include <sys/types.h>
-#include <sys/socket.h>
+#ifdef WIN32
+# include <winsock2.h>
+#else
+# include <sys/socket.h>
+#endif
 
 #include "torrent/exceptions.h"
 #include <rak/socket_address.h>
@@ -57,9 +61,9 @@ SocketDatagram::read_datagram(void* buffer, unsigned int length, rak::socket_add
 
   if (sa != NULL) {
     fromlen = sizeof(rak::socket_address);
-    r = ::recvfrom(m_fileDesc, buffer, length, 0, sa->c_sockaddr(), &fromlen);
+    r = ::recvfrom(m_fileDesc, (char*)buffer, length, 0, sa->c_sockaddr(), &fromlen);
   } else {
-    r = ::recv(m_fileDesc, buffer, length, 0);
+    r = ::recv(m_fileDesc, (char*)buffer, length, 0);
   }
 
   return r;
@@ -73,9 +77,9 @@ SocketDatagram::write_datagram(const void* buffer, unsigned int length, rak::soc
   int r;
 
   if (sa != NULL) {
-    r = ::sendto(m_fileDesc, buffer, length, 0, sa->sa_inet()->c_sockaddr(), sizeof(rak::socket_address_inet));
+    r = ::sendto(m_fileDesc, (const char*)buffer, length, 0, sa->sa_inet()->c_sockaddr(), sizeof(rak::socket_address_inet));
   } else {
-    r = ::send(m_fileDesc, buffer, length, 0);
+    r = ::send(m_fileDesc, (const char*)buffer, length, 0);
   }
 
   return r;

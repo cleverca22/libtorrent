@@ -50,10 +50,18 @@
 #include <cstring>
 #include <string>
 #include <stdexcept>
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+#ifdef WIN32
+# include <winsock2.h>
+typedef int sa_family_t;
+typedef int socklen_t;
+# include <ws2tcpip.h>
+#else
+# include <arpa/inet.h>
+# include <netinet/in.h>
+# include <sys/types.h>
+# include <sys/socket.h>
+#endif
+#include <stdint.h>
 
 namespace rak {
 
@@ -383,12 +391,24 @@ socket_address_inet::address_str() const {
 
 inline bool
 socket_address_inet::address_c_str(char* buf, socklen_t size) const {
+#ifdef WIN32
+  if (family() != AF_INET)  return false;
+  strncpy(buf,inet_ntoa(m_sockaddr.sin_addr),size);
+  buf[size-1] = 0;
+  return true;
+#else
   return inet_ntop(family(), &m_sockaddr.sin_addr, buf, size);
+#endif
 }
 
 inline bool
 socket_address_inet::set_address_c_str(const char* a) {
+#ifdef WIN32
+  m_sockaddr.sin_addr.s_net = inet_addr(a);
+  return true;
+#else
   return inet_pton(AF_INET, a, &m_sockaddr.sin_addr);
+#endif
 }
 
 inline bool

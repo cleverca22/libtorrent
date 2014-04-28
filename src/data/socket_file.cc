@@ -43,8 +43,12 @@
 #include <unistd.h>
 #include <rak/error_number.h>
 #include <rak/file_stat.h>
-#include <sys/ioctl.h>
-#include <sys/mman.h>
+#ifdef WIN32
+# include <mman.h>
+#else
+# include <sys/ioctl.h>
+# include <sys/mman.h>
+#endif
 #include <sys/types.h>
 
 #ifdef HAVE_FALLOCATE
@@ -153,6 +157,7 @@ SocketFile::set_size(uint64_t size, int flags) const {
 
 MemoryChunk
 SocketFile::create_chunk(uint64_t offset, uint32_t length, int prot, int flags) const {
+  //printf("SocketFile::create_chunk(%d,%d,%d,%d)\n",(int)offset,length,prot,flags);
   if (!is_open())
     throw internal_error("SocketFile::get_chunk() called on a closed file");
 
@@ -162,11 +167,16 @@ SocketFile::create_chunk(uint64_t offset, uint32_t length, int prot, int flags) 
     return MemoryChunk();
 
   uint64_t align = offset % MemoryChunk::page_size();
+  //printf("getting chunk at offset %d %d\n",(int)offset,(int)align);
 
+  //printf("align:%d offset:%d pagesize:%d\n",(int)align,(int)(offset-align),MemoryChunk::page_size());
   char* ptr = (char*)mmap(NULL, length + align, prot, flags, m_fd, offset - align);
   
-  if (ptr == MAP_FAILED)
+  if (ptr == MAP_FAILED) {
+    throw internal_error("SocketFile::create_chunk mmap failed");
+    //printf("mmap'd fd:%d ptr:%p errno:%d %s path:%s size:%d offset:%d\n",m_fd,ptr,errno,strerror(errno),this->filename.c_str(),length,(int)offset);
     return MemoryChunk();
+  }
 
   return MemoryChunk(ptr, ptr + align, ptr + align + length, prot, flags);
 }

@@ -38,6 +38,9 @@
 #define LIBTORRENT_NET_SOCKET_FD_H
 
 #include <unistd.h>
+#ifdef WIN32
+# include <winsock2.h>
+#endif
 
 namespace rak {
   class socket_address;
@@ -49,11 +52,16 @@ class SocketFd {
 public:
   typedef uint8_t priority_type;
 
-  SocketFd() : m_fd(-1) {}
   explicit SocketFd(int fd) : m_fd(fd) {}
-
+#ifdef WIN32
+  SocketFd() : m_fd(INVALID_SOCKET) {}
+  bool                is_valid() const                        { return m_fd != INVALID_SOCKET; }
+  void                clear()                                 { m_fd = INVALID_SOCKET; }
+#else
+  SocketFd() : m_fd(-1) {}
   bool                is_valid() const                        { return m_fd >= 0; }
-  
+  void                clear()                                 { m_fd = -1; }
+#endif
   int                 get_fd() const                          { return m_fd; }
   void                set_fd(int fd)                          { m_fd = fd; }
 
@@ -71,8 +79,6 @@ public:
   bool                open_datagram();
   bool                open_local();
   void                close();
-
-  void                clear()                                 { m_fd = -1; }
 
   bool                bind(const rak::socket_address& sa);
   bool                bind(const rak::socket_address& sa, unsigned int length);

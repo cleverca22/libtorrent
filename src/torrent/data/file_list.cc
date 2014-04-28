@@ -36,6 +36,7 @@
 
 #include "config.h"
 
+#include <iostream>
 #include <algorithm>
 #include <cstring>
 #include <functional>
@@ -46,6 +47,9 @@
 #include <rak/file_stat.h>
 #include <rak/fs_stat.h>
 #include <rak/functional.h>
+#include <stdio.h>
+
+#include <assert.h>
 
 #include "data/chunk.h"
 #include "data/memory_chunk.h"
@@ -194,12 +198,19 @@ FileList::free_diskspace() const {
   uint64_t freeDiskspace = std::numeric_limits<uint64_t>::max();
 
   for (path_list::const_iterator itr = m_indirectLinks.begin(), last = m_indirectLinks.end(); itr != last; ++itr) {
+#ifdef WIN32
+    // FIXME, put inside rak::fs_stat
+    DWORD sectorsPerCluster,bytesPerSector,numberOfFreeClusters,totalNumberOfClusters;
+    GetDiskFreeSpace((*itr).c_str(),&sectorsPerCluster,&bytesPerSector,&numberOfFreeClusters,&totalNumberOfClusters);
+    freeDiskspace = std::min<uint64_t>(freeDiskspace,bytesPerSector*sectorsPerCluster*numberOfFreeClusters);
+#else
     rak::fs_stat stat;
 
     if (!stat.update(*itr))
       continue;
 
     freeDiskspace = std::min<uint64_t>(freeDiskspace, stat.bytes_avail());
+#endif
   }
 
   return freeDiskspace != std::numeric_limits<uint64_t>::max() ? freeDiskspace : 0;
@@ -314,10 +325,17 @@ FileList::update_paths(iterator first, iterator last) {
 
 bool
 FileList::make_root_path() {
+  puts("mr a");
   if (!is_open())
     return false;
+  puts("mr b");
 
+#ifdef WIN32
+  printf("making root path %s\n",m_rootDir.c_str());
+  return mkdir(m_rootDir.c_str()) == 0 || errno == EEXIST;
+#else
   return ::mkdir(m_rootDir.c_str(), 0777) == 0 || errno == EEXIST;
+#endif
 }
 
 bool
@@ -362,8 +380,9 @@ FileList::make_all_paths() {
 // multiple files.
 void
 FileList::initialize(uint64_t torrentSize, uint32_t chunkSize) {
-  if (sizeof(off_t) != 8)
-    throw internal_error("Last minute panic; sizeof(off_t) != 8.");
+  std::cout << "sizeof off_t is " << sizeof(off_t) << std::endl;
+  //if (sizeof(off_t) != 8)
+  //  throw internal_error("Last minute panic; sizeof(off_t) != 8.");
 
   if (chunkSize == 0)
     throw internal_error("FileList::initialize() chunk_size() == 0.");
@@ -405,8 +424,10 @@ FileList::open(int flags) {
   path_set pathSet;
 
   try {
+    puts("open checking root");
     if (!(flags & open_no_create) && !make_root_path())
       throw storage_error("Could not create directory '" + m_rootDir + "': " + std::strerror(errno));
+    puts("checked");
   
     for (iterator itr = begin(), last = end(); itr != last; ++itr) {
       File* entry = *itr;
@@ -440,7 +461,6 @@ FileList::open(int flags) {
       // it here if necessary.
 
       entry->set_flags_protected(File::flag_active);
-
       if (!open_file(&*entry, lastPath, flags)) {
         // This needs to check if the error was due to open_no_create
         // being set or not.
@@ -516,14 +536,21 @@ FileList::make_directory(Path::const_iterator pathBegin, Path::const_iterator pa
     rak::file_stat fileStat;
 
     if (fileStat.update_link(path) &&
+#ifndef WIN32
         fileStat.is_link() &&
+#endif
         std::find(m_indirectLinks.begin(), m_indirectLinks.end(), path) == m_indirectLinks.end())
       m_indirectLinks.push_back(path);
 
     if (pathBegin == pathEnd)
       break;
 
+#ifdef WIN32
+    printf("making dir %s\n",path.c_str());
+    if (::mkdir(path.c_str()) != 0 && errno != EEXIST)
+#else
     if (::mkdir(path.c_str(), 0777) != 0 && errno != EEXIST)
+#endif
       throw storage_error("Could not create directory '" + path + "': " + std::strerror(errno));
   }
 }
@@ -555,7 +582,11 @@ FileList::open_file(File* node, const Path& lastPath, int flags) {
   rak::file_stat fileStat;
 
   if (fileStat.update(node->frozen_path()) &&
-      !fileStat.is_regular() && !fileStat.is_link()) {
+      !fileStat.is_regular()
+#ifndef WIN32
+      && !fileStat.is_link()
+#endif
+      ) {
     // Might also bork on other kinds of file types, but there's no
     // suitable errno for all cases.
     rak::error_number::set_global(rak::error_number::e_isdir);
@@ -575,14 +606,17 @@ FileList::create_chunk_part(FileList::iterator itr, uint64_t offset, uint32_t le
 
   // Check that offset != length of file.
 
-  if (!(*itr)->prepare(prot))
+  if (!(*itr)->prepare(prot)) {
+    //printf("make chunk part err\n");
     return MemoryChunk();
+  }
 
   return SocketFile((*itr)->file_descriptor()).create_chunk(offset, length, prot, MemoryChunk::map_shared);
 }
 
 Chunk*
 FileList::create_chunk(uint64_t offset, uint32_t length, int prot) {
+  //printf("FileList::create_chunk(%ld MB,%d,%d)\n",offset/1024/1024,length,prot);
   if (offset + length > m_torrentSize)
     throw internal_error("Tried to access chunk out of range in FileList");
 

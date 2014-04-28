@@ -58,6 +58,8 @@
 #include <sys/mount.h>
 #endif
 
+#include <sys/stat.h>
+
 namespace rak {
 
 class fs_stat {
@@ -65,18 +67,26 @@ public:
 
   typedef FS_STAT_SIZE_TYPE  blocksize_type;
   typedef FS_STAT_COUNT_TYPE blockcount_type;
+#ifndef WIN32
   typedef FS_STAT_STRUCT     fs_stat_type;
+#endif
 
-  bool                       update(int fd)                       { return FS_STAT_FD; }
+//  bool                       update(int fd)                       { return FS_STAT_FD; }
+#ifndef WIN32
   bool                       update(const char* fn)               { return FS_STAT_FN; }
   bool                       update(const std::string& filename)  { return update(filename.c_str()); }
+#endif
 
+#ifndef WIN32
   blocksize_type             blocksize()                          { return FS_STAT_BLOCK_SIZE; }
   blockcount_type            blocks_avail()                       { return m_stat.f_bavail; }
   int64_t                    bytes_avail()                        { return (int64_t) blocksize() * m_stat.f_bavail; }
+#endif
 
 private:
+#ifndef WIN32
   fs_stat_type               m_stat;
+#endif
 };
 
 }

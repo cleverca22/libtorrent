@@ -114,6 +114,7 @@ public:
 class LIBTORRENT_EXPORT blocked_connection : public network_error {
 public:
   virtual ~blocked_connection() throw() {}
+  virtual const char* what() const throw() { return "blocked conn"; }
 };
 
 // Stuff like bad torrent file, disk space and permissions.

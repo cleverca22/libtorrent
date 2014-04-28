@@ -38,14 +38,19 @@
 
 #include <errno.h>
 #include <fcntl.h>
-#include <sys/ioctl.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <netinet/in_systm.h>
-#include <netinet/ip.h>
+#ifdef WIN32
+# include <winsock2.h>
+#else
+# include <sys/ioctl.h>
+# include <sys/types.h>
+# include <sys/socket.h>
+# include <arpa/inet.h>
+# include <netinet/in.h>
+# include <netinet/in_systm.h>
+# include <netinet/ip.h>
+#endif
 #include <rak/socket_address.h>
+#include <rak/error_number.h>
 
 #include "torrent/exceptions.h"
 #include "socket_fd.h"
@@ -61,8 +66,12 @@ SocketFd::check_valid() const {
 bool
 SocketFd::set_nonblock() {
   check_valid();
-
+#ifdef WIN32
+  u_long one = 1;
+  return ioctlsocket(m_fd,FIONBIO,&one) == 0;
+#else
   return fcntl(m_fd, F_SETFL, O_NONBLOCK) == 0;
+#endif
 }
 
 bool
@@ -70,7 +79,7 @@ SocketFd::set_priority(priority_type p) {
   check_valid();
   int opt = p;
 
-  return setsockopt(m_fd, IPPROTO_IP, IP_TOS, &opt, sizeof(opt)) == 0;
+  return setsockopt(m_fd, IPPROTO_IP, IP_TOS, (char*)&opt, sizeof(opt)) == 0;
 }
 
 bool
@@ -78,7 +87,7 @@ SocketFd::set_reuse_address(bool state) {
   check_valid();
   int opt = state;
 
-  return setsockopt(m_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == 0;
+  return setsockopt(m_fd, SOL_SOCKET, SO_REUSEADDR, (char*)&opt, sizeof(opt)) == 0;
 }
 
 bool
@@ -86,15 +95,14 @@ SocketFd::set_send_buffer_size(uint32_t s) {
   check_valid();
   int opt = s;
 
-  return setsockopt(m_fd, SOL_SOCKET, SO_SNDBUF, &opt, sizeof(opt)) == 0;
+  return setsockopt(m_fd, SOL_SOCKET, SO_SNDBUF, (char*)&opt, sizeof(opt)) == 0;
 }
 
 bool
 SocketFd::set_receive_buffer_size(uint32_t s) {
   check_valid();
   int opt = s;
-
-  return setsockopt(m_fd, SOL_SOCKET, SO_RCVBUF, &opt, sizeof(opt)) == 0;
+  return setsockopt(m_fd, SOL_SOCKET, SO_RCVBUF, (char*)&opt, sizeof(opt)) == 0;
 }
 
 int
@@ -104,7 +112,7 @@ SocketFd::get_error() const {
   int err;
   socklen_t length = sizeof(err);
 
-  if (getsockopt(m_fd, SOL_SOCKET, SO_ERROR, &err, &length) == -1)
+  if (getsockopt(m_fd, SOL_SOCKET, SO_ERROR, (char*)&err, &length) == -1)
     throw internal_error("SocketFd::get_error() could not get error");
 
   return err;
@@ -112,7 +120,11 @@ SocketFd::get_error() const {
 
 bool
 SocketFd::open_stream() {
+#ifdef WIN32
+  return (m_fd = socket(rak::socket_address::pf_inet, SOCK_STREAM, IPPROTO_TCP)) != INVALID_SOCKET;
+#else
   return (m_fd = socket(rak::socket_address::pf_inet, SOCK_STREAM, IPPROTO_TCP)) != -1;
+#endif
 }
 
 bool
@@ -127,8 +139,22 @@ SocketFd::open_local() {
 
 void
 SocketFd::close() {
-  if (::close(m_fd) && errno == EBADF)
+  int ret;
+#ifdef WIN32
+  //printf("SocketFd::close() m_socket == %d\n",m_fd);
+  ret = ::closesocket(m_fd);
+    int winerr = WSAGetLastError();
+    if (winerr == WSAEWOULDBLOCK) return;
+    if (winerr == ERROR_INVALID_PARAMETER) return;
+    //printf("winerr %d, errno %d, ret=%d\n",winerr,errno,ret);
+    rak::error_number err(winerr);
+    // FIXME, throw errors?
+#else
+  ret = ::close(m_fd);
+  rak::error_number err = rak::error_number::current();
+  if (ret && errno == EBADF)
     throw internal_error("SocketFd::close() called on an invalid file descriptor");
+#endif
 }
 
 bool
@@ -149,7 +175,17 @@ bool
 SocketFd::connect(const rak::socket_address& sa) {
   check_valid();
 
+#ifdef WIN32
+  //printf("sock fd connect %d %s\n",m_fd,sa.address_str().c_str());
+  bool ret = !::connect(m_fd, sa.c_sockaddr(), sa.length()); // FIXME?
+  int winerr = WSAGetLastError();
+  if (winerr == WSAEWOULDBLOCK) return true;
+  //printf("winerr=%d errno = %d %s\n",winerr,errno,strerror(errno));
+  if (ret) puts("returning true");
+  return ret;
+#else
   return !::connect(m_fd, sa.c_sockaddr(), sa.length()) || errno == EINPROGRESS;
+#endif
 }
 
 bool

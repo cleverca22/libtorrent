@@ -62,10 +62,16 @@ struct poll_check_t {
       return;
 
     // This check is not nessesary, just for debugging.
+#ifdef WIN32
+    if (s->file_descriptor() == INVALID_SOCKET)
+      throw internal_error("poll_check: s->fd == INVALID_SOCKET");
+#else
     if (s->file_descriptor() < 0)
       throw internal_error("poll_check: s->fd < 0");
+#endif
 
     if (FD_ISSET(s->file_descriptor(), m_set)) {
+
       m_op(s);
 
       // We waive the global lock after an event has been processed in
@@ -95,11 +101,14 @@ struct poll_mark {
     if (s == NULL)
       throw internal_error("poll_mark: s == NULL");
 
+#ifdef WIN32
+    if (s->file_descriptor() == INVALID_SOCKET)
+      throw internal_error("poll_mark: s->fd == INVALID_SOCKET");
+#else
     if (s->file_descriptor() < 0)
       throw internal_error("poll_mark: s->fd < 0");
-
+#endif
     *m_max = std::max(*m_max, (unsigned int)s->file_descriptor());
-
     FD_SET(s->file_descriptor(), m_set);
   }
 
