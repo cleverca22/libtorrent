@@ -37,6 +37,9 @@
 #include "config.h"
 
 #include <functional>
+#ifdef WIN32
+# include <winsock2.h>
+#endif
 
 #include "torrent/exceptions.h"
 #include "torrent/thread_base.h"

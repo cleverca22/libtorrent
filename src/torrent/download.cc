@@ -39,7 +39,6 @@
 #include <rak/functional.h>
 #include <sigc++/adaptors/bind.h>
 #include <sigc++/adaptors/hide.h>
-#include <stdio.h>
 
 #include "data/block.h"
 #include "data/block_list.h"
@@ -77,7 +76,6 @@ Download::open(int flags) {
 
   // Currently always open with no_create, as start will make sure
   // they are created. Need to fix this.
-  puts("opening from download");
   m_ptr->main()->open(FileList::open_no_create);
   m_ptr->hash_checker()->hashing_ranges().insert(0, m_ptr->main()->file_list()->size_chunks());
 
@@ -120,7 +118,6 @@ Download::start(int flags) {
   // If the FileList::open_no_create flag was not set, our new
   // behavior is to create all zero-length files with
   // flag_queued_create set.
-  puts("download start");
   file_list()->open(flags & ~FileList::open_no_create);
 
   if (m_ptr->connection_type() == CONNECTION_INITIAL_SEED) {

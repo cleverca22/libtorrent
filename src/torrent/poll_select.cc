@@ -40,6 +40,9 @@
 
 #include <unistd.h>
 #include <sys/time.h>
+#ifdef WIN32
+# include <winsock2.h>
+#endif
 
 #include "net/socket_set.h"
 #include "rak/allocators.h"
