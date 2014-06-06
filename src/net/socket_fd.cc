@@ -181,7 +181,6 @@ SocketFd::connect(const rak::socket_address& sa) {
   int winerr = WSAGetLastError();
   if (winerr == WSAEWOULDBLOCK) return true;
   //printf("winerr=%d errno = %d %s\n",winerr,errno,strerror(errno));
-  if (ret) puts("returning true");
   return ret;
 #else
   return !::connect(m_fd, sa.c_sockaddr(), sa.length()) || errno == EINPROGRESS;

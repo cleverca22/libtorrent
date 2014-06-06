@@ -33,8 +33,8 @@ src/protocol/initial_seed.cc src/protocol/peer_connection_base.cc
 src/torrent/peer/peer_info.cc src/net/socket_stream.cc src/dht/dht_bucket.cc
 src/download/available_list.cc src/data/memory_chunk.cc src/dht/dht_router.cc
 src/torrent/data/block_list.cc src/torrent/data/block.cc
-src/torrent/object_static_map.cc
+src/torrent/object_static_map.cc src/torrent/hash_string.cc
 src/torrent/download/choke_group.cc src/torrent/tracker_list.cc
 src/protocol/handshake_encryption.cc src/dht/dht_server.cc)
 
-include_directories(src/torrent src)
+include_directories(src/torrent src . ../libsigc++-2.3.1)
